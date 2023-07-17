@@ -9,7 +9,9 @@ use diesel::pg::{Pg, PgConnection};
 use diesel::query_builder::{AstPass, QueryFragment, QueryId};
 use diesel::query_dsl::{LoadQuery, RunQueryDsl};
 use diesel::result::{Error as DieselError, QueryResult};
-use diesel::sql_types::{Array, BigInt, Binary, Bool, Int8, Integer, Jsonb, Range, Text};
+use diesel::sql_types::{
+    Array, BigInt, Binary, Bool, Int8, Integer, Jsonb, Range, Text, Timestamptz,
+};
 use diesel::Connection;
 
 use graph::components::store::write::WriteChunk;
@@ -249,6 +251,8 @@ pub trait FromColumnValue: Sized + std::fmt::Debug {
     // The string returned by the DB, without the leading '\x'
     fn from_bytes(i: &str) -> Result<Self, StoreError>;
 
+    fn from_timestamp(i: &str) -> Result<Self, StoreError>;
+
     fn from_vec(v: Vec<Self>) -> Self;
 
     fn from_column_value(
@@ -300,6 +304,7 @@ pub trait FromColumnValue: Sized + std::fmt::Debug {
                 Ok(Self::from_string(s))
             }
             (j::String(s), ColumnType::Bytes) => Self::from_bytes(s.trim_start_matches("\\x")),
+            (j::String(s), ColumnType::Timestamp) => Self::from_timestamp(&s),
             (j::String(s), column_type) => Err(StoreError::Unknown(anyhow!(
                 "can not convert string {} to {:?}",
                 s,
@@ -362,6 +367,14 @@ impl FromColumnValue for r::Value {
         }
     }
 
+    fn from_timestamp(i: &str) -> Result<Self, StoreError> {
+        scalar::Timestamp::from_rfc3339(i)
+            .map(|v| r::Value::String(v.as_millis_since_epoch().to_string()))
+            .map_err(|e| {
+                StoreError::Unknown(anyhow!("failed to convert {} to Timestamp: {}", i, e))
+            })
+    }
+
     fn from_vec(v: Vec<Self>) -> Self {
         r::Value::List(v)
     }
@@ -406,6 +419,14 @@ impl FromColumnValue for graph::prelude::Value {
         scalar::Bytes::from_str(b)
             .map(graph::prelude::Value::Bytes)
             .map_err(|e| StoreError::Unknown(anyhow!("failed to convert {} to Bytes: {}", b, e)))
+    }
+
+    fn from_timestamp(i: &str) -> Result<Self, StoreError> {
+        scalar::Timestamp::from_rfc3339(i)
+            .map(graph::prelude::Value::Timestamp)
+            .map_err(|e| {
+                StoreError::Unknown(anyhow!("failed to convert {} to Timestamp: {}", i, e))
+            })
     }
 
     fn from_vec(v: Vec<Self>) -> Self {
@@ -564,6 +585,15 @@ impl<'a> QueryFragment<Pg> for QueryValue<'a> {
                         )
                     })?)
                 }
+                ColumnType::Timestamp => out.push_bind_param::<Timestamptz, _>(
+                    &s.parse::<scalar::Timestamp>().map_err(|e| {
+                        constraint_violation!(
+                            "failed to convert `{}` to an Timestamp: {}",
+                            s,
+                            e.to_string()
+                        )
+                    })?,
+                ),
                 ColumnType::Enum(enum_type) => {
                     out.push_bind_param::<Text, _>(s)?;
                     out.push_sql("::");
@@ -587,6 +617,7 @@ impl<'a> QueryFragment<Pg> for QueryValue<'a> {
             },
             Value::Int(i) => out.push_bind_param::<Integer, _>(i),
             Value::Int8(i) => out.push_bind_param::<Int8, _>(i),
+            Value::Timestamp(i) => out.push_bind_param::<Timestamptz, _>(i),
             Value::BigDecimal(d) => {
                 out.push_bind_param::<Text, _>(&d.to_string())?;
                 out.push_sql("::numeric");
@@ -605,6 +636,7 @@ impl<'a> QueryFragment<Pg> for QueryValue<'a> {
                     ColumnType::Bytes => out.push_bind_param::<Array<Binary>, _>(values),
                     ColumnType::Int => out.push_bind_param::<Array<Integer>, _>(values),
                     ColumnType::Int8 => out.push_bind_param::<Array<Int8>, _>(&values),
+                    ColumnType::Timestamp => out.push_bind_param::<Array<Timestamptz>, _>(&values),
                     ColumnType::String => out.push_bind_param::<Array<Text>, _>(values),
                     ColumnType::Enum(enum_type) => {
                         out.push_bind_param::<Array<Text>, _>(values)?;
@@ -1187,6 +1219,7 @@ impl<'a> QueryFilter<'a> {
             }
             Value::Null
             | Value::BigDecimal(_)
+            | Value::Timestamp(_)
             | Value::Int(_)
             | Value::Int8(_)
             | Value::Bool(_)
@@ -1260,6 +1293,7 @@ impl<'a> QueryFilter<'a> {
                 | Value::BigDecimal(_)
                 | Value::Int(_)
                 | Value::Int8(_)
+                | Value::Timestamp(_)
                 | Value::String(_) => QueryValue(value, &column.column_type).walk_ast(out)?,
                 Value::Bool(_) | Value::List(_) | Value::Null => {
                     return Err(UnsupportedFilter {
@@ -1400,6 +1434,7 @@ impl<'a> QueryFilter<'a> {
             | Value::BigDecimal(_)
             | Value::Int(_)
             | Value::Int8(_)
+            | Value::Timestamp(_)
             | Value::List(_)
             | Value::Null => {
                 return Err(UnsupportedFilter {
