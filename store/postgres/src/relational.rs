@@ -18,10 +18,10 @@ pub(crate) mod index;
 mod prune;
 mod rollup;
 
+use diesel::deserialize::FromSql;
 use diesel::pg::Pg;
-use diesel::serialize::Output;
+use diesel::serialize::{Output, ToSql};
 use diesel::sql_types::Text;
-use diesel::types::{FromSql, ToSql};
 use diesel::{connection::SimpleConnection, Connection};
 use diesel::{debug_query, OptionalExtension, PgConnection, QueryResult, RunQueryDsl};
 use graph::blockchain::BlockTime;
@@ -187,7 +187,7 @@ impl FromSql<Text, Pg> for SqlName {
 }
 
 impl ToSql<Text, Pg> for SqlName {
-    fn to_sql<W: std::io::Write>(&self, out: &mut Output<W, Pg>) -> diesel::serialize::Result {
+    fn to_sql(&self, out: &mut Output<Pg>) -> diesel::serialize::Result {
         <String as ToSql<Text, Pg>>::to_sql(&self.0, out)
     }
 }
