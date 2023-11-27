@@ -1126,7 +1126,7 @@ impl DeploymentStore {
         // for longer than we have to
         let event: StoreEvent = batch.store_event(&site.deployment);
 
-        let (layout, earliest_block) = deployment::with_lock(&mut conn, &site, || {
+        let (layout, earliest_block) = deployment::with_lock(&mut conn, &site, |conn| {
             conn.transaction(|conn| -> Result<_, StoreError> {
                 // Make the changes
                 let layout = self.layout(conn, site.clone())?;

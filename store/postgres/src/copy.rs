@@ -762,16 +762,16 @@ impl Connection {
     }
 
     pub fn copy_data_internal(&mut self) -> Result<Status, StoreError> {
-        let mut state = self.transaction(|mut conn| {
-            CopyState::new(
-                &mut conn,
-                self.src.clone(),
-                self.dst.clone(),
-                self.target_block.clone(),
-            )
-        })?;
+        // TODO: check removed transaction
+        let mut state = CopyState::new(
+            &mut self.conn,
+            self.src.clone(),
+            self.dst.clone(),
+            self.target_block.clone(),
+        )?;
 
-        let mut progress = CopyProgress::new(&self.logger, &state);
+        let logger = &self.logger.clone();
+        let mut progress = CopyProgress::new(logger, &state);
         progress.start();
 
         for table in state.tables.iter_mut().filter(|table| !table.finished()) {
@@ -800,7 +800,7 @@ impl Connection {
                     }
                 }
 
-                let status = self.transaction(|mut conn| table.copy_batch(&mut conn))?;
+                let status = self.transaction(|conn| table.copy_batch(conn))?;
                 if status == Status::Cancelled {
                     return Ok(status);
                 }
@@ -811,7 +811,7 @@ impl Connection {
 
         self.copy_private_data_sources(&state)?;
 
-        self.transaction(|mut conn| state.finished(&mut conn))?;
+        self.transaction(|conn| state.finished(conn))?;
         progress.finished();
 
         Ok(Status::Finished)
