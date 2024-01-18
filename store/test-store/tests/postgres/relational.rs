@@ -1184,11 +1184,11 @@ fn check_find() {
         let checker = checker
             .check(
                 vec!["3"],
-                user_query().filter(EntityFilter::Equal("userSearch".into(), "Shaq:*".into())),
+                user_query().filter(EntityFilter::Fulltext("userSearch".into(), "Shaq:*".into())),
             )
             .check(
                 vec!["1"],
-                user_query().filter(EntityFilter::Equal(
+                user_query().filter(EntityFilter::Fulltext(
                     "userSearch".into(),
                     "Jono & achangedemail@email.com".into(),
                 )),
@@ -1198,11 +1198,14 @@ fn check_find() {
         let checker = checker
             .check(
                 vec!["3"],
-                user_query().filter(EntityFilter::Equal("userSearch2".into(), "Shaq:*".into())),
+                user_query().filter(EntityFilter::Fulltext(
+                    "userSearch2".into(),
+                    "Shaq:*".into(),
+                )),
             )
             .check(
                 vec!["1"],
-                user_query().filter(EntityFilter::Equal(
+                user_query().filter(EntityFilter::Fulltext(
                     "userSearch2".into(),
                     "Jono & achangedemail@email.com".into(),
                 )),
