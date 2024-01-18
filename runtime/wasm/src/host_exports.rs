@@ -4,31 +4,31 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use crate::data::subgraph::API_VERSION_0_0_8;
-use crate::data::value::Word;
+use graph::data::subgraph::API_VERSION_0_0_8;
+use graph::data::value::Word;
 
-use graph::schema::{EntityType, TypeKind};
+use graph::schema::EntityType;
 use never::Never;
 use semver::Version;
 use web3::types::H160;
 
-use crate::data::store::{self};
-use crate::data_source::{CausalityRegion, DataSource, EntityTypeAccess};
-use crate::ensure;
-use crate::prelude::ethabi::param_type::Reader;
-use crate::prelude::ethabi::{decode, encode, Token};
-use crate::prelude::serde_json;
-use crate::prelude::{slog::b, slog::record_static, *};
-use crate::runtime::gas::{self, complexity, Gas, GasCounter};
-pub use crate::runtime::{DeterministicHostError, HostExportError};
-use graph::blockchain::{BlockTime, Blockchain};
+use graph::blockchain::Blockchain;
 use graph::components::store::{EnsLookup, GetScope, LoadRelatedRequest};
 use graph::components::subgraph::{
-    PoICausalityRegion, ProofOfIndexingEvent, SharedProofOfIndexing,
+    InstanceDSTemplate, PoICausalityRegion, ProofOfIndexingEvent, SharedProofOfIndexing,
 };
+use graph::data::store::{self};
+use graph::data_source::{CausalityRegion, DataSource, EntityTypeAccess};
+use graph::ensure;
+use graph::prelude::ethabi::param_type::Reader;
+use graph::prelude::ethabi::{decode, encode, Token};
+use graph::prelude::serde_json;
+use graph::prelude::{slog::b, slog::record_static, *};
+use graph::runtime::gas::{self, complexity, Gas, GasCounter};
+pub use graph::runtime::{DeterministicHostError, HostExportError};
 
-use crate::runtime::module::WasmInstance;
-use crate::{runtime::error::DeterminismLevel, runtime::module::IntoTrap};
+use crate::module::WasmInstance;
+use crate::{error::DeterminismLevel, module::IntoTrap};
 
 use super::module::WasmInstanceData;
 
@@ -450,7 +450,7 @@ impl HostExports {
         // Does not consume gas because this is not a part of the deterministic feature set.
         // Ideally this would first consume gas for fetching the file stats, and then again
         // for the bytes of the file.
-        crate::block_on(self.link_resolver.cat(logger, &Link { link }))
+        graph::block_on(self.link_resolver.cat(logger, &Link { link }))
     }
 
     pub(crate) fn ipfs_get_block(
@@ -461,7 +461,7 @@ impl HostExports {
         // Does not consume gas because this is not a part of the deterministic feature set.
         // Ideally this would first consume gas for fetching the file stats, and then again
         // for the bytes of the file.
-        crate::block_on(self.link_resolver.get_block(logger, &Link { link }))
+        graph::block_on(self.link_resolver.get_block(logger, &Link { link }))
     }
 
     // Read the IPFS file `link`, split it into JSON objects, and invoke the
@@ -505,9 +505,9 @@ impl HostExports {
 
         let result = {
             let mut stream: JsonValueStream =
-                crate::block_on(link_resolver.json_stream(&logger, &Link { link }))?;
+                graph::block_on(link_resolver.json_stream(&logger, &Link { link }))?;
             let mut v = Vec::new();
-            while let Some(sv) = crate::block_on(stream.next()) {
+            while let Some(sv) = graph::block_on(stream.next()) {
                 let sv = sv?;
                 let module = WasmInstance::from_valid_module_with_ctx(
                     valid_module.clone(),
@@ -1126,7 +1126,7 @@ pub mod test_support {
         slog::Logger,
     };
 
-    use crate::runtime::MappingContext;
+    use crate::MappingContext;
 
     pub struct HostExports {
         host_exports: Arc<super::HostExports>,
@@ -1192,7 +1192,7 @@ fn bytes_to_string_is_lossy() {
     assert_eq!(
         "Downcoin WETH-USDT",
         bytes_to_string(
-            &crate::log::logger(true),
+            &graph::log::logger(true),
             vec![68, 111, 119, 110, 99, 111, 105, 110, 32, 87, 69, 84, 72, 45, 85, 83, 68, 84],
         )
     );
@@ -1200,7 +1200,7 @@ fn bytes_to_string_is_lossy() {
     assert_eq!(
         "Downcoin WETH-USDT�",
         bytes_to_string(
-            &crate::log::logger(true),
+            &graph::log::logger(true),
             vec![
                 68, 111, 119, 110, 99, 111, 105, 110, 32, 87, 69, 84, 72, 45, 85, 83, 68, 84, 160,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
