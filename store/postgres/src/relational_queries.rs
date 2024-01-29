@@ -876,7 +876,7 @@ impl QueryFragment<Pg> for ContainsOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum PrefixType {
     String,
     Bytes,
@@ -899,7 +899,7 @@ impl PrefixType {
     /// should be the same expression that we used when creating an index
     /// for the column
     fn push_column_prefix<'b>(
-        &'b self,
+        self,
         column: &'b QualColumn<'_>,
         out: &mut AstPass<'_, 'b, Pg>,
     ) -> QueryResult<()> {
@@ -1002,7 +1002,9 @@ impl<'a> PrefixComparison<'a> {
         op: Comparison,
         mut out: AstPass<'_, 'b, Pg>,
     ) -> QueryResult<()> {
-        self.kind.push_column_prefix(&self.column, &mut out)?;
+        self.kind
+            .clone()
+            .push_column_prefix(&self.column, &mut out)?;
         out.push_sql(op.as_str());
         self.push_value_prefix(&mut out)
     }
@@ -1756,19 +1758,22 @@ impl<'a> Filter<'a> {
             if
             /* column.use_prefix_comparison
             && */
-            values.iter().all(|v| match &v.value {
-                SqlValue::String(s) => s.len() < STRING_PREFIX_SIZE,
-                SqlValue::Bytes(b) => b.len() < BYTE_ARRAY_PREFIX_SIZE,
-                _ => false,
-            }) {
+            PrefixType::new(column).is_ok()
+                && values.iter().all(|v| match &v.value {
+                    SqlValue::Text(s) => s.len() < STRING_PREFIX_SIZE,
+                    SqlValue::String(s) => s.len() < STRING_PREFIX_SIZE,
+                    SqlValue::Binary(b) => b.len() < BYTE_ARRAY_PREFIX_SIZE,
+                    SqlValue::Bytes(b) => b.len() < BYTE_ARRAY_PREFIX_SIZE,
+                    _ => false,
+                })
+            {
                 // If all values are shorter than the prefix size only check
                 // the prefix of the column; that's a fairly common case and
                 // we present it in the best possible way for Postgres'
                 // query optimizer
                 // See PrefixComparison for a more detailed discussion of what
                 // is happening here
-                todo!()
-                // PrefixType::new(column)?.push_column_prefix(&mut out)?;
+                PrefixType::new(column)?.push_column_prefix(column, &mut out.reborrow())?;
             } else {
                 column.walk_ast(out.reborrow())?;
             }
