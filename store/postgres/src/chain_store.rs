@@ -1653,7 +1653,7 @@ impl ChainStore {
                 n::head_block_hash.eq::<Option<&str>>(None),
                 n::head_block_number.eq::<Option<i64>>(None),
             ))
-            .execute(&conn)
+            .execute(&mut conn)
             .unwrap();
         self.recent_blocks_cache.blocks()
     }
