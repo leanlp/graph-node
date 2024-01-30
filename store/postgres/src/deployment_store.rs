@@ -1283,8 +1283,8 @@ impl DeploymentStore {
         firehose_cursor: &FirehoseCursor,
         truncate: bool,
     ) -> Result<StoreEvent, StoreError> {
-        let event = deployment::with_lock(conn, &site, || {
-            conn.transaction(|| -> Result<_, StoreError> {
+        let event = deployment::with_lock(conn, &site, |conn| {
+            conn.transaction(|conn| -> Result<_, StoreError> {
                 // The revert functions want the number of the first block that we need to get rid of
                 let block = block_ptr_to.number + 1;
 
