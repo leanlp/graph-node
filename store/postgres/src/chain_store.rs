@@ -581,8 +581,6 @@ mod data {
             chain: &str,
             hashes: &[BlockHash],
         ) -> Result<Vec<JsonBlock>, StoreError> {
-            use diesel::dsl::any;
-
             // We need to deal with chain stores where some entries have a
             // toplevel 'block' field and others directly contain what would
             // be in the 'block' field. Make sure we return the contents of
@@ -1694,7 +1692,7 @@ impl ChainStore {
             .with_conn(move |conn, _| {
                 store
                     .storage
-                    .blocks(&conn, &store.chain, &hashes)
+                    .blocks(conn, &store.chain, &hashes)
                     .map_err(CancelableError::from)
             })
             .await?;
