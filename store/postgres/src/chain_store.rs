@@ -602,9 +602,10 @@ mod data {
                             sql::<Jsonb>("coalesce(data -> 'block', data)"),
                         ))
                         .filter(b::network_name.eq(chain))
-                        .filter(b::hash.eq(any(Vec::from_iter(
-                            hashes.iter().map(|h| format!("{:x}", h)),
-                        ))))
+                        .filter(
+                            b::hash
+                                .eq_any(Vec::from_iter(hashes.iter().map(|h| format!("{:x}", h)))),
+                        )
                         .load::<(BlockHash, i64, BlockHash, json::Value)>(conn)
                 }
                 Storage::Private(Schema { blocks, .. }) => blocks
