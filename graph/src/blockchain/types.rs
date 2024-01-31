@@ -2,14 +2,11 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use diesel::deserialize::FromSql;
 use diesel::pg::Pg;
-use diesel::serialize::Output;
+use diesel::serialize::{Output, ToSql};
 use diesel::sql_types::Timestamptz;
 use diesel::sql_types::{Bytea, Nullable, Text};
-use diesel::types::FromSql;
-use diesel::types::ToSql;
-use diesel_derives::{AsExpression, FromSqlRow};
+use diesel_derives::FromSqlRow;
 use std::convert::TryFrom;
-use std::io::Write;
 use std::time::Duration;
 use std::{fmt, str::FromStr};
 use web3::types::{Block, H256};
@@ -391,7 +388,7 @@ impl TryFrom<&Value> for BlockTime {
 }
 
 impl ToSql<Timestamptz, Pg> for BlockTime {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> diesel::serialize::Result {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> diesel::serialize::Result {
         <DateTime<Utc> as ToSql<Timestamptz, Pg>>::to_sql(&self.0, out)
     }
 }

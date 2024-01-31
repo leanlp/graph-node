@@ -936,7 +936,7 @@ impl Layout {
 
     pub(crate) fn block_time(
         &self,
-        conn: &PgConnection,
+        conn: &mut PgConnection,
         block: BlockNumber,
     ) -> Result<Option<BlockTime>, StoreError> {
         let block_time_name = self.input_schema.poi_block_time();
@@ -1017,7 +1017,7 @@ impl Layout {
     /// numbers and block times which we do not have anywhere in graph-node.
     pub(crate) fn rollup(
         &self,
-        conn: &PgConnection,
+        conn: &mut PgConnection,
         last_rollup: Option<BlockTime>,
         block_times: &[(BlockNumber, BlockTime)],
     ) -> Result<(), StoreError> {

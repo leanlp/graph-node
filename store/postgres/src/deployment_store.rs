@@ -919,9 +919,9 @@ impl DeploymentStore {
     ) -> Result<Option<BlockTime>, StoreError> {
         let store = self.cheap_clone();
 
-        let conn = self.get_conn()?;
-        let layout = store.layout(&conn, site.cheap_clone())?;
-        layout.block_time(&conn, block)
+        let mut conn = self.get_conn()?;
+        let layout = store.layout(&mut conn, site.cheap_clone())?;
+        layout.block_time(&mut conn, block)
     }
 
     pub(crate) async fn supports_proof_of_indexing<'a>(
