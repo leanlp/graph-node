@@ -16,9 +16,13 @@ limited in size, through a mechanism we will defined later on.
 If state is not used then all the processing will happen in parallel until it reaches the chain head. 
 
 ## State
-State refers to intermediate state between blocks (think the state for fold operations). Only the 
-latest data is kept and it is only queryable from the pre-indexer, subgraphs and graphql don't have 
-access to it.
+State refers to intermediate state between blocks (think the state for fold operations). It is only 
+queryable from the pre-indexer, subgraphs and graphql don't have access to it.
+
+In order to support reverts, it is necessary to be able to retrieve a previous state. State should
+store a log of delta operations as well as a snapshot every TBD amount of blocks. Retrieving an old state
+will be possible by getting the latest snapshot and applying the delta operations between that block and 
+the block it is needed at. 
 
 This state is necessary so that users can keep track of things like created contracts on ethereum.
 

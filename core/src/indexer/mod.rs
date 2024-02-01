@@ -20,10 +20,16 @@ mod uniswap;
 
 pub type Item = Box<[u8]>;
 
+enum StateOperation {
+    Set(Key, Item),
+    Unset(Key, Item),
+}
+
 #[derive(Default)]
 pub struct State {
     items: HashMap<Box<[u8]>, Item>,
     tags: HashMap<&'static str, Vec<Box<[u8]>>>,
+    deltas: Vec<StateOperation>,
 }
 
 #[derive(Hash)]
