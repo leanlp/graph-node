@@ -1136,7 +1136,6 @@ fn migrate_schema(logger: &Logger, conn: &mut PgConnection) -> Result<MigrationC
     let mut harness = HarnessWithOutput::new(conn, &mut output);
 
     info!(logger, "Running migrations");
-    // let result = conn.run_pending_migrations(MIGRATIONS);
     let result = harness.run_pending_migrations(MIGRATIONS);
     info!(logger, "Migrations finished");
 

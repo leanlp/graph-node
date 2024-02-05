@@ -584,8 +584,8 @@ impl DeploymentStore {
         &self,
         namespace: &crate::primary::Namespace,
     ) -> Result<(), StoreError> {
-        let conn = &mut *self.get_conn()?;
-        deployment::drop_schema(conn, namespace)
+        let mut conn = self.get_conn()?;
+        deployment::drop_schema(&mut conn, namespace)
     }
 
     // Only used for tests
@@ -1395,21 +1395,6 @@ impl DeploymentStore {
         // Confidence check on revert to ensure we go backward only
         if block_ptr_to.number >= deployment_head.number {
             panic!("revert_block_operations must revert only backward, you are trying to revert forward going from subgraph block {} to new block {}", deployment_head, block_ptr_to);
-        }
-
-        // Don't revert past a graft point
-        let info = self.subgraph_info_with_conn(&mut conn, site.as_ref())?;
-        if let Some(graft_block) = info.graft_block {
-            if graft_block > block_ptr_to.number {
-                return Err(constraint_violation!(
-                    "Can not revert subgraph `{}` to block {} as it was \
-                        grafted at block {} and reverting past a graft point \
-                        is not possible",
-                    site.deployment.clone(),
-                    block_ptr_to.number,
-                    graft_block
-                ));
-            }
         }
 
         // Don't revert past a graft point
