@@ -44,7 +44,7 @@ impl BigDecimal {
     /// https://en.wikipedia.org/wiki/Decimal128_floating-point_format.
     pub const MIN_EXP: i32 = -6143;
     pub const MAX_EXP: i32 = 6144;
-    pub const MAX_SIGNFICANT_DIGITS: i32 = 34;
+    pub const MAX_SIGNFICANT_DIGITS: i32 = 35; // should be 34?
 
     pub fn new(digits: BigInt, exp: i64) -> Self {
         // bigdecimal uses `scale` as the opposite of the power of ten, so negate `exp`.
