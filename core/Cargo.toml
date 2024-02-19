@@ -3,6 +3,10 @@ name = "graph-core"
 version.workspace = true
 edition.workspace = true
 
+[[bin]]
+name = "indexer"
+path = "src/indexer/main.rs"
+
 [dependencies]
 async-trait = "0.1.50"
 atomic_refcell = "0.1.13"
@@ -30,12 +34,14 @@ graph-runtime-wasm = { path = "../runtime/wasm" }
 cid = "0.11.0"
 anyhow = "1.0"
 
-borsh = { version = "1.3.1", features = ["derive"] }
 # The version already used in the project is very old and upgrade is currently blocked.
 once_cell = "1.18.0"
 ethabi = "17.0"
 substreams = "0.5.0"
 substreams-ethereum = "0.8.0"
+
+uniswap = { path = "../transforms/uniswap" }
+sled = "0.34.7"
 
 [dev-dependencies]
 tower-test = { git = "https://github.com/tower-rs/tower.git" }

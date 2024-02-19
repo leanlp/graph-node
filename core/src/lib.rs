@@ -1,6 +1,5 @@
 pub mod polling_monitor;
 
-mod indexer;
 mod link_resolver;
 mod subgraph;
 

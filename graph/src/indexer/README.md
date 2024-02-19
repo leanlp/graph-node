@@ -43,6 +43,27 @@ possible to apply filters to the incoming data so that the processing is quicker
 about the processing is that if state is not used, the entire block space being scanned can be 
 partitioned and handled in parallel.
 
+## Parallel Processing
+The worker will calculate the range between the last stable block (if present) and the chain head
+minus the Reorg threshold. For a given number of workers, each worker will get a range starting the 
+oldest stable block or start block. 
+
+As confirmation of completion arrives from the older block ranges the last stable block is updated
+and the db is flushed to ensure data is written to disk before continuing.
+
+### Last Stable Block
+Last Stable block is the property that can be observed from subgraphs block streams in order to know
+if the data that follows is ready for processing so it acts as a barrier to protect from consuming
+state that is still in flight. 
+
+### Recovery
+In case of a failure, only blocks before LSB are considered valid and the rest will be overwritten 
+by running the same process again. 
+
+### Cancellation
+If an error occurs within one of the ranges, the error should propagate to the orchestration function
+which should cancel all the ranges as soon as possible. 
+
 ## Store
 The store is a mapping of BlockNumber to the list of triggers for that block, where the order will be 
 preserved. 

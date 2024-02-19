@@ -1,3 +1,4 @@
+use crate::indexer::{IndexWorker, IndexerContext};
 use crate::subgraph::context::IndexingContext;
 use crate::subgraph::error::BlockProcessingError;
 use crate::subgraph::inputs::IndexingInputs;
@@ -194,6 +195,15 @@ where
 
         loop {
             debug!(self.logger, "Starting or restarting subgraph");
+
+            let ctx = IndexerContext {
+                chain: todo!(),
+                transform: todo!(),
+                store: todo!(),
+                deployment: todo!(),
+            };
+
+            let iw = IndexWorker {};
 
             let block_stream_canceler = CancelGuard::new();
             let block_stream_cancel_handle = block_stream_canceler.handle();

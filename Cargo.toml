@@ -8,6 +8,7 @@ members = [
     "server/*",
     "store/*",
     "substreams/*",
+    "transforms/*",
     "graph",
     "tests",
 ]

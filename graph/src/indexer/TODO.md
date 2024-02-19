@@ -1,0 +1,21 @@
+# TODO
+
+- [] SledStore
+    - [x] snapshot store
+    - [x] state read
+    - [] tests
+- [] sequential worker
+- [] paralell worker
+    - [X] handle ack
+    - [] update head
+    - [] error handling
+    - [] set latest stable block
+- [x] State 
+    - [x] Delta rebuild
+    - [x] set get
+- [] patch Blockstream
+    -> [] passthrough vec<u8>
+    - [] firehose mapper
+        - [] remove clone
+- [] Uniswap toy example
+- [] main 
