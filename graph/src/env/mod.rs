@@ -199,6 +199,10 @@ pub struct EnvVars {
     /// The amount of history to keep when using 'min' historyBlocks
     /// in the manifest
     pub min_history_blocks: BlockNumber,
+
+    /// Set by the env var `GRAPH_gas_metrics_gcs_bucket`
+    /// The name of the GCS bucket to store DIPS metrics
+    pub gas_metrics_gcs_bucket: String,
 }
 
 impl EnvVars {
@@ -268,6 +272,7 @@ impl EnvVars {
             min_history_blocks: inner
                 .min_history_blocks
                 .unwrap_or(2 * inner.reorg_threshold),
+            gas_metrics_gcs_bucket: inner.gas_metrics_gcs_bucket,
         })
     }
 
@@ -405,6 +410,8 @@ struct Inner {
     history_blocks_override: Option<BlockNumber>,
     #[envconfig(from = "GRAPH_MIN_HISTORY_BLOCKS")]
     min_history_blocks: Option<BlockNumber>,
+    #[envconfig(from = "GRAPH_gas_metrics_gcs_bucket", default = "dips-metrics")]
+    gas_metrics_gcs_bucket: String,
 }
 
 #[derive(Clone, Debug)]

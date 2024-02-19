@@ -102,7 +102,7 @@ pub struct HostMetrics {
     handler_execution_time: Box<HistogramVec>,
     host_fn_execution_time: Box<HistogramVec>,
     eth_call_execution_time: Box<HistogramVec>,
-    pub gas_metrics: GasMetrics,
+    pub gas_metrics: Arc<GasMetrics>,
     pub stopwatch: StopwatchMetrics,
 }
 
@@ -111,7 +111,7 @@ impl HostMetrics {
         registry: Arc<MetricsRegistry>,
         subgraph: &str,
         stopwatch: StopwatchMetrics,
-        gas_metrics: GasMetrics,
+        gas_metrics: Arc<GasMetrics>,
     ) -> Self {
         let handler_execution_time = registry
             .new_deployment_histogram_vec(

@@ -79,13 +79,13 @@ impl Display for Gas {
 #[derive(Clone)]
 pub struct GasCounter {
     counter: Arc<AtomicU64>,
-    metrics: GasMetrics,
+    metrics: Arc<GasMetrics>,
 }
 
 impl CheapClone for GasCounter {}
 
 impl GasCounter {
-    pub fn new(metrics: GasMetrics) -> Self {
+    pub fn new(metrics: Arc<GasMetrics>) -> Self {
         Self {
             counter: Arc::new(AtomicU64::new(0)),
             metrics,

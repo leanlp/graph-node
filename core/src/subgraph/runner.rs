@@ -564,7 +564,7 @@ where
         persisted_data_sources.extend(persisted_off_chain_data_sources);
         store
             .transact_block_operations(
-                block_ptr,
+                block_ptr.clone(),
                 block.timestamp(),
                 firehose_cursor,
                 mods,
@@ -605,6 +605,21 @@ where
             // Use `Canceled` to avoiding setting the subgraph health to failed, an error was
             // just transacted so it will be already be set to unhealthy.
             return Err(BlockProcessingError::Canceled);
+        }
+
+        // Spawns a task to upload gas metrics to GCS, enabled via ENV_VARS.enable_gas_metrics.
+        // Logs errors without interrupting block processing.
+        if ENV_VARS.enable_gas_metrics {
+            match self.metrics.host.gas_metrics.flush_metrics_to_gcs(
+                &logger,
+                block_ptr,
+                self.inputs.deployment.id,
+            ) {
+                Ok(()) => (),
+                Err(e) => {
+                    error!(logger, "Failed to gas metrics to GCS"; "error" => e.to_string())
+                }
+            }
         }
 
         match needs_restart {

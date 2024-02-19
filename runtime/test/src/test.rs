@@ -96,13 +96,13 @@ async fn test_valid_module_and_store_with_timeout(
         "test_shard".to_string(),
     );
 
-    let gas_metrics = GasMetrics::new(deployment_id.clone(), metrics_registry.clone());
+    let gas_metrics = GasMetrics::new();
 
     let host_metrics = Arc::new(HostMetrics::new(
         metrics_registry,
         deployment_id.as_str(),
         stopwatch_metrics,
-        gas_metrics,
+        Arc::new(gas_metrics),
     ));
 
     let experimental_features = ExperimentalFeatures {
@@ -1258,9 +1258,9 @@ impl Host {
             metrics_registry.clone(),
             "test_shard".to_string(),
         );
-        let gas_metrics = GasMetrics::new(deployment.hash.clone(), metrics_registry);
+        let gas_metrics = GasMetrics::new();
 
-        let gas = GasCounter::new(gas_metrics);
+        let gas = GasCounter::new(Arc::new(gas_metrics));
 
         Host {
             ctx,

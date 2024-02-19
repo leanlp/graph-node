@@ -346,7 +346,7 @@ impl<S: SubgraphStore> SubgraphInstanceManager<S> {
             store.shard().to_string(),
         );
 
-        let gas_metrics = GasMetrics::new(deployment.hash.clone(), self.metrics_registry.clone());
+        let gas_metrics = Arc::new(GasMetrics::new());
 
         let unified_mapping_api_version = manifest.unified_mapping_api_version()?;
         let triggers_adapter = chain.triggers_adapter(&deployment, &required_capabilities, unified_mapping_api_version).map_err(|e|
@@ -359,7 +359,7 @@ impl<S: SubgraphStore> SubgraphInstanceManager<S> {
             registry.cheap_clone(),
             deployment.hash.as_str(),
             stopwatch_metrics.clone(),
-            gas_metrics.clone(),
+            gas_metrics,
         ));
 
         let subgraph_metrics = Arc::new(SubgraphInstanceMetrics::new(
