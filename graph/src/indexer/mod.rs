@@ -110,10 +110,10 @@ pub trait BlockTransform: Clone + Sync + Send {
 
 /// IndexerContext will provide all inputs necessary for the processing
 pub struct IndexerContext<B: Blockchain, T: BlockTransform, S: IndexerStore> {
-    chain: Arc<B>,
-    transform: Arc<T>,
-    store: Arc<S>,
-    deployment: DeploymentLocator,
+    pub chain: Arc<B>,
+    pub transform: Arc<T>,
+    pub store: Arc<S>,
+    pub deployment: DeploymentLocator,
 }
 
 impl<B: Blockchain, T: BlockTransform, S: IndexerStore> IndexerContext<B, T, S> {}
@@ -146,7 +146,7 @@ impl DeploymentCursorTracker for IndexerCursorTracker {
 pub struct IndexWorker {}
 
 impl IndexWorker {
-    async fn run_many<B, T, S>(
+    pub async fn run_many<B, T, S>(
         &self,
         ctx: Arc<IndexerContext<B, T, S>>,
         cursor_tracker: impl DeploymentCursorTracker,
@@ -187,12 +187,11 @@ impl IndexWorker {
             let filter = filter.cheap_clone();
             let api_version = api_version.clone();
             let ctx = ctx.cheap_clone();
-            handles.push(crate::spawn(Self::run(
-                ctx,
-                cursor_tracker,
-                filter,
-                api_version,
-            )));
+            handles.push(crate::spawn(async move {
+                let r = Self::run(ctx, cursor_tracker, filter, api_version).await;
+                println!("### finished: {:?}", r);
+                r
+            }));
         }
 
         futures03::future::try_join_all(handles)

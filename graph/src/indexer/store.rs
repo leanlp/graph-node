@@ -47,7 +47,7 @@ pub struct SledIndexerStore {
 
 impl SledIndexerStore {
     pub fn new(
-        db: Db,
+        db: Arc<Db>,
         tree_name: &str,
         snapshot_frequency: StateSnapshotFrequency,
     ) -> Result<Self> {

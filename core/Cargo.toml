@@ -3,10 +3,6 @@ name = "graph-core"
 version.workspace = true
 edition.workspace = true
 
-[[bin]]
-name = "indexer"
-path = "src/indexer/main.rs"
-
 [dependencies]
 async-trait = "0.1.50"
 atomic_refcell = "0.1.13"
