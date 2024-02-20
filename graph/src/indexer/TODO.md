@@ -7,15 +7,20 @@
 - [] sequential worker
 - [] paralell worker
     - [X] handle ack
-    - [] update head
+    - [x] update head
     - [] error handling
-    - [] set latest stable block
+    - [x] set latest stable block
+    - [] handle reverts
 - [x] State 
     - [x] Delta rebuild
     - [x] set get
 - [] patch Blockstream
-    -> [] passthrough vec<u8>
+    - [x] passthrough vec<u8>
     - [] firehose mapper
         - [] remove clone
 - [] Uniswap toy example
-- [] main 
+- [] perf tests
+    - [] consume all the blocks in parallel, empty transform
+    - [] block stream from kv to run subgraph
+    - [] minimal uniswap example using new architecture
+- [] binary to check data?

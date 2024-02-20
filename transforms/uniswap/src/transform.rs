@@ -2,11 +2,14 @@ use std::str::FromStr;
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use ethabi::Address;
-// use substreams_ethereum::pb::eth::v2::Block;
+use prost::Message;
+use substreams_ethereum::pb::eth::v2::Block;
 
 use graph::indexer::{BlockTransform, EncodedBlock, EncodedTriggers, State};
 
-const UNISWAP_V2_FACTORY: &str = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73";
+use crate::abi::factory::events::PoolCreated;
+
+const UNISWAP_V2_FACTORY: &str = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
 pub const POOL_TAG: &str = "pool";
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -14,6 +17,17 @@ pub struct Pool {
     address: Vec<u8>,
     token0: Vec<u8>,
     token1: Vec<u8>,
+    owner: Vec<u8>,
+}
+
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct Events {
+    events: Vec<Event>,
+}
+
+#[derive(BorshSerialize, BorshDeserialize)]
+pub enum Event {
+    PoolCreated(Pool),
 }
 
 #[derive(Clone, Debug)]
@@ -32,50 +46,41 @@ impl UniswapTransform {
 
 impl BlockTransform for UniswapTransform {
     fn transform(&self, block: EncodedBlock, mut state: State) -> (State, EncodedTriggers) {
-        // let res = vec![];
-        // let block = Block::decode(block.0.as_ref()).unwrap();
+        let mut events = vec![];
+        let block = Block::decode(block.0.as_ref()).unwrap();
 
-        // for log in block.logs() {
-        //     if log.log.block_index == 0 {
-        //         continue;
-        //     }
+        for log in block.logs() {
+            if log.log.block_index == 0 {
+                continue;
+            }
 
-        //     if log.address() != self.factory_addr.as_ref() {
-        //         continue;
-        //     }
+            if log.address() != self.factory_addr.as_ref() {
+                continue;
+            }
 
-        //     match PairCreated::decode(&log.log) {
-        //         Ok(PairCreated {
-        //             token0,
-        //             token1,
-        //             pair: _,
-        //             param3: _,
-        //         }) => {
-        //             let p = Pool {
-        //                 address: log.address().to_owned(),
-        //                 token0,
-        //                 token1,
-        //             };
+            match PoolCreated::decode(&log.log) {
+                Ok(PoolCreated {
+                    token0,
+                    token1,
+                    fee: _,
+                    tick_spacing: _,
+                    pool,
+                }) => {
+                    let p = Pool {
+                        address: pool,
+                        token0,
+                        token1,
+                        owner: log.address().to_vec(),
+                    };
 
-        //             state
-        //                 .set_encode(
-        //                     crate::indexer::Key {
-        //                         id: log.address().into(),
-        //                         tag: Some(POOL_TAG.to_string()),
-        //                     },
-        //                     p,
-        //                 )
-        //                 .unwrap();
-        //         }
-        //         _ => continue,
-        //     }
-        // }
+                    events.push(Event::PoolCreated(p));
+                }
+                _ => continue,
+            }
+        }
 
-        // let all_pools = state.get_keys(POOL_TAG);
-        // for log in block.logs() {
-        //     // Get relevant pool events for all pools
-        // }
+        let bs = borsh::to_vec(&Events { events }).unwrap();
 
-        (state, EncodedTriggers(block.0))
+        (state, EncodedTriggers(bs.into_boxed_slice()))
     }
 }

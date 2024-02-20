@@ -217,6 +217,9 @@ where
 
             let iw = IndexWorker {};
 
+            // TriggerFilter needs to be rebuilt eveytime the blockstream is restarted
+            self.ctx.filter = Some(self.build_filter());
+
             iw.run_many(
                 ctx,
                 self.inputs.store.clone(),
@@ -224,7 +227,7 @@ where
                 None,
                 Arc::new(self.ctx.filter.as_ref().unwrap().clone()),
                 self.inputs.unified_api_version.clone(),
-                200,
+                40,
             )
             .await
             .unwrap();
@@ -232,8 +235,6 @@ where
 
             let block_stream_canceler = CancelGuard::new();
             let block_stream_cancel_handle = block_stream_canceler.handle();
-            // TriggerFilter needs to be rebuilt eveytime the blockstream is restarted
-            self.ctx.filter = Some(self.build_filter());
 
             let mut block_stream = new_block_stream(
                 &self.inputs,

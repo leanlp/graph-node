@@ -15,6 +15,7 @@ use anyhow::{anyhow, Error, Result};
 use async_trait::async_trait;
 use borsh::{BorshDeserialize, BorshSerialize};
 use futures03::{Stream, StreamExt};
+use tokio::time::{self, Instant};
 
 pub mod store;
 
@@ -183,13 +184,17 @@ impl IndexWorker {
                 stop_block: Some(*chunk.last().unwrap()),
                 firehose_cursor: FirehoseCursor::None,
             };
+            println!("first: {}", cursor_tracker.start_block);
+            println!("last: {}", cursor_tracker.stop_block.unwrap());
 
             let filter = filter.cheap_clone();
             let api_version = api_version.clone();
             let ctx = ctx.cheap_clone();
             handles.push(crate::spawn(async move {
+                let now = Instant::now();
                 let r = Self::run(ctx, cursor_tracker, filter, api_version).await;
-                println!("### finished: {:?}", r);
+                let end = Instant::now().duration_since(now).as_secs();
+                println!("### finished (took {}s)", end);
                 r
             }));
         }
@@ -233,22 +238,26 @@ impl IndexWorker {
                 api_version,
             )
             .await?;
-        if let Some(stop_block) = cursor_tracker.stop_block.as_ref() {
-            block_stream = block_stream
-                .take((stop_block - cursor_tracker.start_block) as usize)
-                .into_inner();
-        }
 
-        let cursor = Self::process_stream(ctx, State::default(), Box::pin(block_stream)).await?;
+        let cursor = Self::process_stream(
+            ctx,
+            State::default(),
+            Box::pin(block_stream),
+            cursor_tracker.stop_block,
+        )
+        .await?;
         cursor_tracker.firehose_cursor = cursor;
 
         Ok(cursor_tracker)
     }
 
+    /// Processes the stream until it ends or stop_block is reached. The stop_block is not
+    /// processed, once it's reached the previous cursor should be returned.
     async fn process_stream<B, T, S>(
         ctx: Arc<IndexerContext<B, T, S>>,
         initial_state: State,
         mut stream: Pin<Box<impl Stream<Item = Result<BlockStreamEvent<B>, anyhow::Error>>>>,
+        stop_block: Option<BlockNumber>,
     ) -> Result<FirehoseCursor>
     where
         B: Blockchain,
@@ -257,6 +266,7 @@ impl IndexWorker {
     {
         let mut firehose_cursor = FirehoseCursor::None;
         let mut previous_state = initial_state;
+
         loop {
             let evt = stream.next().await;
 
@@ -268,6 +278,12 @@ impl IndexWorker {
                     _handler,
                     cursor,
                 ))) => {
+                    if let Some(stop_block) = stop_block {
+                        if block_ptr.number >= stop_block {
+                            return Ok(firehose_cursor);
+                        }
+                    }
+
                     let (state, triggers) = ctx
                         .transform
                         .transform(EncodedBlock(data), std::mem::take(&mut previous_state));
@@ -283,11 +299,16 @@ impl IndexWorker {
                     unreachable!("Process block not implemented yet")
                 }
                 Some(Ok(BlockStreamEvent::Revert(revert_to_ptr, cursor))) => {
-                    unimplemented!("revert not implemented yet")
+                    println!("Revert detected to block {}", revert_to_ptr);
+
+                    cursor
                 }
                 Some(Err(e)) => return Err(e),
 
-                None => break,
+                None => {
+                    println!("### done!");
+                    break;
+                }
             };
 
             firehose_cursor = cursor;

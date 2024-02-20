@@ -9,7 +9,7 @@ use sled::{Db, Tree};
 use thiserror::Error;
 
 use super::{EncodedTriggers, IndexerStore, State, StateDelta};
-pub const DB_NAME: &str = "sled_indexer_db";
+pub const DB_NAME: &str = "/media/data/sled_indexer_db";
 pub const STATE_SNAPSHOT_FREQUENCY: u32 = 1000;
 
 /// How frequently do we want state to be fully stored.
