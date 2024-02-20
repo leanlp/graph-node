@@ -220,6 +220,7 @@ where
             // TriggerFilter needs to be rebuilt eveytime the blockstream is restarted
             self.ctx.filter = Some(self.build_filter());
 
+            let earlier = Instant::now();
             iw.run_many(
                 ctx,
                 self.inputs.store.clone(),
@@ -231,6 +232,9 @@ where
             )
             .await
             .unwrap();
+            let diff = Instant::now().duration_since(earlier);
+            println!("### All tasks finished: took {}s ###", diff.as_secs());
+
             panic!("finished ingesting data");
 
             let block_stream_canceler = CancelGuard::new();
