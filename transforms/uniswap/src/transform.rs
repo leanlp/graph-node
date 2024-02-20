@@ -92,7 +92,7 @@ impl BlockTransform for UniswapTransform {
                 events.push(Event::Burn(log.address().to_vec()));
             }
 
-            if log.address() == self.factory_addr.as_ref() {
+            if log.address() != self.factory_addr.as_ref() {
                 continue;
             }
 
