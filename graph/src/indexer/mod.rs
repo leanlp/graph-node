@@ -15,8 +15,12 @@ use anyhow::{anyhow, Error, Result};
 use async_trait::async_trait;
 use borsh::{BorshDeserialize, BorshSerialize};
 use futures03::{Stream, StreamExt};
-use tokio::time::{self, Instant};
+use tokio::{
+    sync::mpsc,
+    time::{self, Instant},
+};
 
+pub mod block_stream;
 pub mod store;
 
 pub type Item = Box<[u8]>;
@@ -89,6 +93,7 @@ impl State {
 
 pub struct EncodedBlock(pub Box<[u8]>);
 pub struct EncodedTriggers(pub Box<[u8]>);
+pub type BlockSender = mpsc::Sender<(BlockNumber, EncodedTriggers)>;
 
 pub struct TriggerMap(HashMap<BlockNumber, EncodedTriggers>);
 
@@ -96,7 +101,9 @@ pub struct TriggerMap(HashMap<BlockNumber, EncodedTriggers>);
 /// Indexer store is the store where the triggers will be kept to be processed by subgraphs
 /// later. Only the latest state is kept and will be limited in size. State is not mandatory
 /// and will not be queryable outside the pre-Indexing process.
-pub trait IndexerStore: Clone + Sync + Send {
+pub trait IndexerStore: Sync + Send {
+    async fn get_last_stable_block(&self) -> Result<Option<BlockNumber>>;
+    async fn stream_from(&self, bn: BlockNumber, bs: BlockSender) -> Result<()>;
     async fn get(&self, bn: BlockNumber) -> Result<Option<EncodedTriggers>>;
     async fn set(&self, bn: BlockNumber, state: &State, triggers: EncodedTriggers) -> Result<()>;
     async fn get_state(&self, bn: BlockNumber) -> Result<State>;

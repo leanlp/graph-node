@@ -6,10 +6,11 @@
     - [] tests
 - [] sequential worker
 - [] paralell worker
-    - [X] handle ack
+    - [x] handle ack
     - [x] update head
     - [] error handling
     - [x] set latest stable block
+    - [] set latest block as soon as it is ready
     - [] handle reverts
 - [x] State 
     - [x] Delta rebuild
@@ -24,3 +25,8 @@
     - [] block stream from kv to run subgraph
     - [] minimal uniswap example using new architecture
 - [] binary to check data?
+- [] test different stores
+    - [] postgres? 
+    - [] rocksdb 
+- [] dataset blockstream
+- [] cleanup println and unwrap

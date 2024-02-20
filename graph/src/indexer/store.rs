@@ -8,9 +8,10 @@ use borsh::BorshDeserialize;
 use sled::{Db, Tree};
 use thiserror::Error;
 
-use super::{EncodedTriggers, IndexerStore, State, StateDelta};
+use super::{BlockSender, EncodedTriggers, IndexerStore, State, StateDelta};
 pub const DB_NAME: &str = "/media/data/sled_indexer_db";
 pub const STATE_SNAPSHOT_FREQUENCY: u32 = 1000;
+pub const TRIGGER_PREFIX: &str = "trigger_";
 
 /// How frequently do we want state to be fully stored.
 /// Never will prevent snapshots, this likely means state is not being used.
@@ -28,6 +29,8 @@ impl Default for StateSnapshotFrequency {
 
 #[derive(Debug, Error)]
 pub enum SledStoreError {
+    #[error("A last stable block is required for this operation")]
+    LastStableBlockRequired,
     #[error("sled returned an error: {0}")]
     SledError(#[from] sled::Error),
 }
@@ -72,7 +75,7 @@ impl SledIndexerStore {
         format!("state_delta_{}", bn)
     }
     pub fn trigger_key(bn: BlockNumber) -> String {
-        format!("trigger_{}", bn)
+        format!("{}{}", TRIGGER_PREFIX, bn)
     }
     pub fn snapshot_key(bn: BlockNumber) -> String {
         format!("state_snapshot_{}", bn)
@@ -196,5 +199,50 @@ impl IndexerStore for SledIndexerStore {
             });
 
         Ok(state)
+    }
+    async fn get_last_stable_block(&self) -> Result<Option<BlockNumber>> {
+        let b = self
+            .tree
+            .get(Self::last_stable_block_key())?
+            .map(|ivec| i32::from_le_bytes(ivec.as_ref().try_into().unwrap()));
+
+        Ok(b)
+    }
+
+    async fn stream_from(&self, bn: BlockNumber, sender: BlockSender) -> Result<()> {
+        let last = self
+            .get_last_stable_block()
+            .await?
+            .ok_or(SledStoreError::LastStableBlockRequired)?;
+
+        let mut iter = self
+            .tree
+            .range(Self::trigger_key(bn)..Self::trigger_key(last));
+
+        loop {
+            let next_trigger = iter.next();
+            let bs: (BlockNumber, EncodedTriggers) = match next_trigger {
+                Some(Ok((key, value))) => {
+                    let block =
+                        key.subslice(TRIGGER_PREFIX.len(), key.len() - TRIGGER_PREFIX.len());
+                    let block: i32 = String::from_utf8_lossy(block.as_ref()).parse().unwrap();
+
+                    let trigger = EncodedTriggers(value.to_vec().into_boxed_slice());
+
+                    (block, trigger)
+                }
+                None => break,
+                _ => unreachable!(),
+            };
+
+            match sender.send(bs).await {
+                Ok(()) => {}
+                Err(_) => {
+                    println!("sender dropped, stream ending");
+                }
+            }
+        }
+
+        Ok(())
     }
 }
