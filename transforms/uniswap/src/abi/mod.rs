@@ -1,12 +1,12 @@
 #[rustfmt::skip]
 #[allow(unused_imports)]
-#[path = "ERC20.rs"]
+#[path = "erc20.rs"]
 pub mod erc20;
 #[rustfmt::skip]
 #[allow(unused_imports)]
-#[path = "Factory.rs"]
+#[path = "factory.rs"]
 pub mod factory;
 #[rustfmt::skip]
 #[allow(unused_imports)]
-#[path = "Pool.rs"]
+#[path = "pool.rs"]
 pub mod pool;
