@@ -177,7 +177,7 @@ impl ToSql<diesel::sql_types::Numeric, diesel::pg::Pg> for BigDecimal {
         &'b self,
         out: &mut diesel::serialize::Output<'b, '_, diesel::pg::Pg>,
     ) -> diesel::serialize::Result {
-        <_ as ToSql<diesel::sql_types::Numeric, _>>::to_sql(&self.0, out)
+        <_ as ToSql<diesel::sql_types::Numeric, _>>::to_sql(&self.0, &mut out.reborrow())
     }
 }
 
@@ -263,7 +263,7 @@ mod big_int {
         pub fn new(inner: num_bigint::BigInt) -> Result<Self, anyhow::Error> {
             // `inner.bits()` won't include the sign bit, so we add 1 to account for it.
             let bits = inner.bits() + 1;
-            if bits > Self::MAX_BITS as u64 {
+            if bits > Self::MAX_BITS as usize {
                 anyhow::bail!(
                     "BigInt is too big, total bits {} (max {})",
                     bits,
@@ -565,7 +565,7 @@ impl Shl<u8> for BigInt {
     type Output = Self;
 
     fn shl(self, bits: u8) -> Self {
-        BigInt::unchecked_new(self.inner().shl(<u8 as Into<u8>>::into(bits)))
+        BigInt::unchecked_new(self.inner().shl(bits.into()))
     }
 }
 
@@ -573,7 +573,7 @@ impl Shr<u8> for BigInt {
     type Output = Self;
 
     fn shr(self, bits: u8) -> Self {
-        BigInt::unchecked_new(self.inner().shr(<u8 as Into<u8>>::into(bits)))
+        BigInt::unchecked_new(self.inner().shr(bits.into()))
     }
 }
 
